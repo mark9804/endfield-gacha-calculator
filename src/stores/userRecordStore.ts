@@ -13,7 +13,7 @@ export const userRecordStore = defineStore(
       currentPity: 0,
       currentBannerPulls: 0,
       is120SparkUsed: false,
-      maxInvestCurrentBanner: 1000,
+      maxInvestCurrentBanner: 0,
       standardPoolSize: 6,
       extraPoolSize: 2,
       iterations: 100000,

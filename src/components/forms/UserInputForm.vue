@@ -35,7 +35,7 @@ watch([originiteCount, orundumCount, permitsCount], () => {
   updateMaxInvest(originiteCount.value, orundumCount.value, permitsCount.value);
 });
 
-const showAdvancedSettings = ref(true);
+const showAdvancedSettings = ref(false);
 const showInvestmentSettings = ref(false);
 
 const useDP = computed({

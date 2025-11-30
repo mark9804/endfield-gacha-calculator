@@ -24,6 +24,7 @@ export interface SimulationConfig {
 
   maxInvestCurrentBanner: number;
   standardPoolSize: number;
+  extraPoolSize: number;
 
   iterations?: number;
 }
