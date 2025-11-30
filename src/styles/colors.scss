@@ -1,0 +1,32 @@
+html {
+  --text-primary: hsla(0, 0%, 10%, 1);
+  --text-secondary: hsla(0, 0%, 10%, 0.8);
+  --text-tertiary: hsla(0, 0%, 10%, 0.6);
+
+  --bg-primary: hsl(59, 100%, 50%);
+  --bg-fill: hsl(0, 0%, 100%);
+  --bg-fill-2: hsl(0, 0%, 94%);
+  --bg-fill-3: hsl(0, 0%, 86%);
+
+  background-color: var(--bg-fill);
+}
+
+html.dark {
+  --text-primary: hsla(0, 0%, 100%, 1);
+  --text-secondary: hsla(0, 0%, 100%, 0.8);
+  --text-tertiary: hsla(0, 0%, 100%, 0.6);
+  
+  --bg-primary: #D2C919;
+  --bg-fill: hsl(0, 0%, 10%);
+  --bg-fill-2: hsl(0, 0%, 22%);
+  --bg-fill-3: hsl(0, 0%, 33%);
+}
+
+$text-primary: var(--text-primary);
+$text-secondary: var(--text-secondary);
+$text-tertiary: var(--text-tertiary);
+$bg-primary: var(--bg-primary);
+$bg-fill: var(--bg-fill);
+$bg-fill-2: var(--bg-fill-2);
+$bg-fill-3: var(--bg-fill-3);
+$disabled-opacity: 0.6;

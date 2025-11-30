@@ -1,0 +1,46 @@
+@import url("https://fonts.blue-archive.io/harmonyos-sans-webfont/harmonyos-sans-sc-400.css");
+@import url("https://fonts.blue-archive.io/harmonyos-sans-webfont/harmonyos-sans-sc-700.css");
+
+@font-face {
+  font-family: "Gilroy Medium";
+  src: local("Gilroy Medium"), url("@/assets/GilroyMedium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Gilroy Bold";
+  src: local("Gilroy Bold"), url("@/assets/GilroyBold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Novecento Wide DemiBold";
+  src:
+    local("Novecento Wide DemiBold"),
+    url("@/assets/NovecentoSansWideDemiBold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Novecento Wide Book";
+  src:
+    local("Novecento Wide Book"),
+    url("@/assets/NovecentoSansWideBook.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geometos";
+  src:
+    local("Geometos"),
+    url("@/assets/Geometos.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+$font-family: "Gilroy Medium", Geometos, "HarmonyOS Sans SC", system-ui, Avenir,
+  Helvetica, Arial, sans-serif;
+
