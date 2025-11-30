@@ -65,8 +65,6 @@ const additionalClasses = computed(() => [
       background-color: $bg-fill;
     }
 
-    // text-shadow: 2px 2px 0px $text-tertiary;
-
     &:not(.perlica-ui-text--nounderline) {
       &::before {
         content: "";
