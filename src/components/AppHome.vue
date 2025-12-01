@@ -11,11 +11,11 @@ function handleToggleDebug() {
 <template>
   <div class="flex flex-col gap-5 items-center justify-center">
     <div class="flex flex-col gap-2 items-center justify-center">
-      <PText title>终末地卡池模拟工具</PText>
-      <PText subtitle>Endfield Gacha Simulator</PText>
+      <PText title>终末地卡池计算工具</PText>
+      <PText subtitle>Endfield Gacha Calculator</PText>
     </div>
     <!-- <UITester /> -->
-    <UserInputForm @toggle-debug="handleToggleDebug" :show-debug="showDebug" />
+    <UserInputForm :show-debug="showDebug" @toggle-debug="handleToggleDebug" />
   </div>
   <DebugPanel v-if="showDebug" />
 </template>
