@@ -66,6 +66,39 @@ export class EndfieldCalculator {
     }
   }
 
+  public async calculateAsync(
+    config: SimulationConfig
+  ): Promise<SimulationResult> {
+    if (config.algorithm === AlgorithmType.DP) {
+      // DP is fast enough to run on main thread
+      return this.calculate(config);
+    } else {
+      return new Promise((resolve, reject) => {
+        const worker = new Worker(
+          new URL("../workers/mcmc.worker.ts", import.meta.url),
+          { type: "module" }
+        );
+
+        worker.onmessage = (e) => {
+          const { status, result, error } = e.data;
+          if (status === "success") {
+            resolve(result);
+          } else {
+            reject(error);
+          }
+          worker.terminate();
+        };
+
+        worker.onerror = (error) => {
+          reject(error);
+          worker.terminate();
+        };
+
+        worker.postMessage(JSON.parse(JSON.stringify(config)));
+      });
+    }
+  }
+
   // ==========================================
   // 算法 1: 动态规划 (DP) - Corrected
   // ==========================================

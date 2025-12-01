@@ -92,13 +92,18 @@ function handleReset() {
 const calculating = ref(false);
 
 // test gacha calculator
-function handleSimulateGacha() {
+// test gacha calculator
+async function handleSimulateGacha() {
   calculating.value = true;
-  const calculator = new EndfieldCalculator();
-  const result = calculator.calculate(userRecord.value);
-  useResults.setSimulationResult(result);
-
-  calculating.value = false;
+  try {
+    const calculator = new EndfieldCalculator();
+    const result = await calculator.calculateAsync(userRecord.value);
+    useResults.setSimulationResult(result);
+  } catch (e) {
+    console.error(e);
+  } finally {
+    calculating.value = false;
+  }
 }
 
 // debugger pane
