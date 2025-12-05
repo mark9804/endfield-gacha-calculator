@@ -29,6 +29,7 @@
     "echarts": "^6.0.0",
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.5.0",
+    "qrcode.vue": "^3.6.0",
     "unocss": "^66.5.2",
     "unplugin-auto-import": "^20.2.0",
     "unplugin-vue-components": "^29.1.0",

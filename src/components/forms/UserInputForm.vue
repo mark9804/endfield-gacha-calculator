@@ -123,7 +123,7 @@ function toggleDebug() {
 
 <template>
   <div
-    class="user-input-form flex flex-col gap-5 p-5 border-t-4 border-b-0 border-l-0 border-r-0 border-solid shadow-lg"
+    class="user-input-form flex flex-col gap-5 p-5 border-t-4 border-b-0 border-l-0 border-r-0 border-solid shadow-lg relative"
   >
     <PSpace vertical long>
       <PText subsubtitle bold>基础信息</PText>
@@ -194,10 +194,10 @@ function toggleDebug() {
     </PSpace>
     <PSpace vertical long>
       <PSpace long justify="end" align="center">
-        <PDivider />
         <PCheckbox v-model:checked="showAdvancedSettings"
           >展开高级设置</PCheckbox
         >
+        <PDivider />
       </PSpace>
       <PSpace v-if="showAdvancedSettings" vertical>
         <PText subsubtitle bold>算法设置</PText>
@@ -253,6 +253,7 @@ function toggleDebug() {
       >
     </PSpace>
     <SimulationResults />
+    <QrCode />
   </div>
 </template>
 

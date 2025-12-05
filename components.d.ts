@@ -20,6 +20,7 @@ declare module 'vue' {
     PMarketCard: typeof import('./src/components/PerlicaUI/PMarketCard.vue')['default']
     PSpace: typeof import('./src/components/PerlicaUI/PSpace.vue')['default']
     PText: typeof import('./src/components/PerlicaUI/PText.vue')['default']
+    QrCode: typeof import('./src/components/QrCode.vue')['default']
     SimulationResults: typeof import('./src/components/SimulationResults.vue')['default']
     UITester: typeof import('./src/components/tests/UITester.vue')['default']
     UserInputForm: typeof import('./src/components/forms/UserInputForm.vue')['default']
