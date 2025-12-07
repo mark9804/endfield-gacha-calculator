@@ -31,7 +31,7 @@ const purchaseCount = computed({
 <template>
   <PSpace vertical align="center" size="large">
     <div
-      class="perlica-ui-market-card flex flex-col shadow-lg rounded-sm items-center justify-center p-3 gap-5"
+      class="perlica-ui-market-card flex flex-col shadow-lg rounded-sm items-center justify-center p-3 gap-5 relative"
     >
       <OriginiumIcon
         :width="48"
@@ -51,6 +51,7 @@ const purchaseCount = computed({
         <PText>{{ item.price }}元</PText>
         <PCheckbox v-model:checked="isFirstBuy">首充</PCheckbox>
       </PSpace>
+      <ContourBackground class="opacity-15" />
     </div>
     <PInputNumber v-model:value="purchaseCount" />
   </PSpace>
