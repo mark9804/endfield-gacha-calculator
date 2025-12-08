@@ -22,12 +22,18 @@ const handleChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   emit("update:checked", target.checked);
 };
+
+function handleClick() {
+  if (props.disabled) return;
+  emit("update:checked", !props.checked);
+}
 </script>
 
 <template>
   <label
     class="perlica-ui-checkbox flex flex-nowrap items-center cursor-pointer !select-none"
     :class="{ 'perlica-ui-checkbox--disabled': disabled }"
+    @click.prevent="handleClick"
   >
     <input
       type="checkbox"

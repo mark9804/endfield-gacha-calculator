@@ -49,7 +49,7 @@ const svgStyle = computed(() => {
 <template>
   <div
     ref="container"
-    class="contour-background-wrapper flex items-center justify-center overflow-hidden absolute top-0 left-0"
+    class="contour-background-wrapper flex items-center justify-center overflow-hidden absolute top-0 left-0 pointer-events-none"
     :style="{
       width: formatSize(width),
       height: formatSize(height),
