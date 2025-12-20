@@ -64,8 +64,9 @@ export class EndfieldCalculator {
   public calculate(config: SimulationConfig): SimulationResult {
     // 歪中目标的单次成本期望
     // 概率 = 0.5(歪) * (1 / (常驻池大小 + 2个陪跑))
-    const probHitFuture = 0.5 * (1 / (config.standardPoolSize + 2));
-    const avgPullPer6Star = 62.3; // 综合期望约为 62.3 抽一个六星
+    const probHitFuture =
+      0.5 * (1 / (config.standardPoolSize + config.extraPoolSize));
+    const avgPullPer6Star = 53.8992735537117; // 综合期望
     const futureUnitCost = avgPullPer6Star / probHitFuture;
 
     if (config.algorithm === AlgorithmType.DP) {
