@@ -51,10 +51,61 @@ export class EndfieldCalculator {
   private readonly SPARK_AT = 120;
   private readonly MILESTONE_STEP = 240;
 
+  // 缓存预计算的“前n抽未出货概率” (Survival Function)
+  private survivalProb: number[] = [];
+  // 缓存单次出金总期望
+  private expectedGoldCost = 0;
+
+  // 预计算生存概率和基础期望，避免重复运算
+  private precomputeStats() {
+    this.survivalProb = new Array(this.HARD_PITY + 2).fill(0);
+    let p_survive = 1.0;
+    let e_gold = 0;
+
+    // P(X >= 1) = 1
+    // P(X >= n) = P(X >= n-1) * (1 - rate(n-1))
+    for (let n = 1; n <= this.HARD_PITY + 1; n++) {
+      this.survivalProb[n] = p_survive;
+
+      // 期望 = sum(P(X >= n)) for n=1 to 80
+      if (n <= this.HARD_PITY) {
+        e_gold += p_survive;
+      }
+
+      const rate = this.getRate(n);
+      p_survive *= 1 - rate;
+    }
+    this.expectedGoldCost = e_gold; // 约 53.9
+  }
+
+  constructor() {
+    this.precomputeStats();
+  }
+
   private getRate(n: number): number {
     if (n < this.SOFT_START) return 0.008;
     if (n >= this.HARD_PITY) return 1.0;
     return 0.008 + (n - this.SOFT_START + 1) * 0.05;
+  }
+
+  /**
+   * 计算在当前水位 p 下，获得下一个六星所需的期望抽数
+   * Formula: Sum(P(X>=n)) / P(X>=p+1) for n=p+1 to 80
+   */
+  private calculateNextSixStarCost(currentPity: number): number {
+    if (currentPity >= this.HARD_PITY) return 0; // 实际上应该马上出，或者视为下一发必出(1)
+
+    let sumSurvive = 0;
+    // 累加未来的存活概率
+    for (let n = currentPity + 1; n <= this.HARD_PITY; n++) {
+      sumSurvive += this.survivalProb[n];
+    }
+
+    // 条件概率归一化
+    const probReachCurrent = this.survivalProb[currentPity + 1];
+    if (probReachCurrent <= 0) return 0;
+
+    return sumSurvive / probReachCurrent;
   }
 
   /**
@@ -66,13 +117,13 @@ export class EndfieldCalculator {
     // 概率 = 0.5(歪) * (1 / (常驻池大小 + 2个陪跑))
     const probHitFuture =
       0.5 * (1 / (config.standardPoolSize + config.extraPoolSize));
-    const avgPullPer6Star = 53.8992735537117; // 综合期望
+    const avgPullPer6Star = this.expectedGoldCost;
     const futureUnitCost = avgPullPer6Star / probHitFuture;
 
     if (config.algorithm === AlgorithmType.DP) {
-      return this.runDP(config, futureUnitCost);
+      return this.runDP(config, futureUnitCost, avgPullPer6Star);
     } else {
-      return this.runMCMC(config, futureUnitCost);
+      return this.runMCMC(config, futureUnitCost, avgPullPer6Star);
     }
   }
 
@@ -121,18 +172,25 @@ export class EndfieldCalculator {
   // ==========================================
   private runDP(
     config: SimulationConfig,
-    futureUnitCost: number
+    futureUnitCost: number,
+    baseGoldCost: number
   ): SimulationResult {
     const maxAddedPulls =
       config.maxInvestCurrentBanner - config.currentBannerPulls;
 
+    // 如果预算都没了，直接全是未来成本
     if (maxAddedPulls <= 0) {
       const needed = Math.max(0, config.targetCopies);
+      // 计入初始 pity 的价值
+      const pityValue =
+        baseGoldCost - this.calculateNextSixStarCost(config.currentPity);
+      const totalCost = needed * futureUnitCost - pityValue;
+
       return {
-        averagePulls: needed * futureUnitCost,
+        averagePulls: Math.max(0, totalCost),
         stdDev: 0,
         successRateInCurrent: 0,
-        expectedPullsOnFail: needed * futureUnitCost,
+        expectedPullsOnFail: Math.max(0, totalCost),
       };
     }
 
@@ -224,7 +282,6 @@ export class EndfieldCalculator {
     }
 
     // 5. 计算未来期望 (处理残留的未毕业概率)
-    // Residual Probability = 1 - accumulatedSuccessProb
     let totalFutureCostUnconditional = 0;
 
     for (let p = 0; p < 80; p++) {
@@ -233,7 +290,14 @@ export class EndfieldCalculator {
           const prob = dp[p][k][s];
           if (prob > 0) {
             const needed = config.targetCopies - k;
-            const futureCost = needed * futureUnitCost;
+
+            // 修正：计算当前残留水位的价值
+            // Value = E_gold - E_next(p)
+            // 实际未来成本 = (needed * unit) - Value
+            const nextCost = this.calculateNextSixStarCost(p);
+            const pityValue = baseGoldCost - nextCost;
+
+            const futureCost = needed * futureUnitCost - pityValue;
 
             totalFutureCostUnconditional += prob * futureCost;
             expectedPulls += prob * (maxAddedPulls + futureCost);
@@ -245,10 +309,6 @@ export class EndfieldCalculator {
     const variance = sumSquares - expectedPulls * expectedPulls; // 注意：这里只包含当期部分的方差贡献
     // 修正：如果方差计算出现微小负数（浮点误差），归零
     const stdDev = variance > 0 ? Math.sqrt(variance) : 0;
-
-    console.log(
-      `[DP Final] Success Rate: ${accumulatedSuccessProb}, Expected: ${expectedPulls}`
-    );
 
     const failRate = 1 - accumulatedSuccessProb;
     const expectedPullsOnFail =
@@ -308,7 +368,8 @@ export class EndfieldCalculator {
   // ==========================================
   private runMCMC(
     config: SimulationConfig,
-    futureUnitCost: number
+    futureUnitCost: number,
+    baseGoldCost: number
   ): SimulationResult {
     const iterations = config.iterations || 10000;
     const results: number[] = [];
@@ -365,11 +426,16 @@ export class EndfieldCalculator {
           // Future Mode
           // 直接由期望公式接管，结束模拟
           const needed = config.targetCopies - copies;
+
+          // 如果 MCMC 模拟到这里，pity 就是当前真实的残留水位
+
           // 注意：这里一旦进入 Future Mode，successInCurrentCount 就不加了
-          const futureCost = needed * futureUnitCost;
+          const nextCost = this.calculateNextSixStarCost(pity);
+          const pityValue = baseGoldCost - nextCost;
+
+          const futureCost = needed * futureUnitCost - pityValue;
 
           pulls += futureCost;
-
           totalFuturePullsSum += futureCost;
           failedCount++;
 
