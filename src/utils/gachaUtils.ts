@@ -3,6 +3,11 @@
  *
  * 基于《明日方舟：终末地》技术测试（三测）的数据，本计算器采用以下数学模型。请注意，正式上线时数值可能会有所调整。
  * 逻辑由 Gemini 3 Pro (11/30/2025) 生成，计算逻辑经过人类检查与修正。
+
+ * 260116 逻辑更新：
+ * 1. 适配公测新规：首个30抽赠送10连（Ghost Pulls）。
+ * - 触发点：currentBannerPulls == 30
+ * - 机制：10次独立判定，0.8%概率，不占保底，不耗井，不计入里程碑。
  */
 
 /**
@@ -51,13 +56,21 @@ export class EndfieldCalculator {
   private readonly SPARK_AT = 120;
   private readonly MILESTONE_STEP = 240;
 
+  // 公测新增规则：首个30抽送10连
+  private readonly FREE_PULL_TRIGGER = 30;
+  private readonly FREE_PULL_AMOUNT = 10;
+  private readonly FREE_PULL_PROB = 0.008; // 恒定 0.8%
+
   // 缓存预计算的“前n抽未出货概率” (Survival Function)
   private survivalProb: number[] = [];
   // 缓存单次出金总期望
   private expectedGoldCost = 0;
+  // 缓存 Ghost Pull 的二项分布概率 (获得 0~10 个 UP 的概率)
+  private ghostPullDist: number[] = [];
 
   // 预计算生存概率和基础期望，避免重复运算
   private precomputeStats() {
+    // 1. 常规出货期望计算
     this.survivalProb = new Array(this.HARD_PITY + 2).fill(0);
     let p_survive = 1.0;
     let e_gold = 0;
@@ -76,6 +89,28 @@ export class EndfieldCalculator {
       p_survive *= 1 - rate;
     }
     this.expectedGoldCost = e_gold; // 约 53.9
+
+    // 2. Ghost Pull 二项分布预计算
+    // 10次抽卡，每次 0.8% 出金，其中 50% 是 UP -> p = 0.004
+    // 计算 P(k) = C(10, k) * p^k * (1-p)^(10-k)
+    const n = this.FREE_PULL_AMOUNT;
+    const p_up = this.FREE_PULL_PROB * 0.5; // 0.004
+    this.ghostPullDist = new Array(n + 1).fill(0);
+
+    for (let k = 0; k <= n; k++) {
+      this.ghostPullDist[k] =
+        this.combinations(n, k) * Math.pow(p_up, k) * Math.pow(1 - p_up, n - k);
+    }
+  }
+
+  // 组合数计算 C(n, k)
+  private combinations(n: number, k: number): number {
+    if (k < 0 || k > n) return 0;
+    let res = 1;
+    for (let i = 0; i < k; i++) {
+      res = (res * (n - i)) / (i + 1);
+    }
+    return res;
   }
 
   constructor() {
@@ -255,6 +290,12 @@ export class EndfieldCalculator {
         }
       }
 
+      // 公测新增：30抽送10连 Ghost Pull 判定
+      // 触发条件：当前刚好达到30抽
+      if (currentTotalPulls === this.FREE_PULL_TRIGGER) {
+        this.applyFreePulls(nextDp, config.targetCopies);
+      }
+
       // 2. 240 抽里程碑
       if (
         currentTotalPulls > 0 &&
@@ -363,6 +404,35 @@ export class EndfieldCalculator {
     }
   }
 
+  // 公测新增：处理30抽送10连的逻辑 (DP版)
+  // 这相当于在不消耗步数的情况下，根据二项分布将概率分散到 k + x 的状态中
+  private applyFreePulls(dp: number[][][], target: number) {
+    // 必须倒序处理 k，防止状态更新后再次被处理（虽然这里我们用中间变量也可以，但倒序省空间）
+    // 但是这里不仅是移位，是分散，所以最好建立一个临时缓冲区
+    // 不过考虑到 k 只能增加，倒序遍历是安全的：处理 k=target 时用不到 k<target 的新值
+    for (let p = 0; p < 80; p++) {
+      for (let s = 0; s < 2; s++) {
+        // 倒序遍历 k
+        for (let k = target - 1; k >= 0; k--) {
+          const prob = dp[p][k][s];
+          if (prob <= 0) continue;
+
+          dp[p][k][s] = 0; // 清空当前状态，准备重新分配
+
+          // 根据 ghostPullDist 分配概率
+          // i 是这10抽里抽到的 UP 数量
+          for (let i = 0; i < this.ghostPullDist.length; i++) {
+            const addedProb = prob * this.ghostPullDist[i];
+            if (addedProb > 0) {
+              const nextK = Math.min(k + i, target);
+              dp[p][nextK][s] += addedProb;
+            }
+          }
+        }
+      }
+    }
+  }
+
   // ==========================================
   // 算法 2: MCMC
   // ==========================================
@@ -398,6 +468,23 @@ export class EndfieldCalculator {
 
         if (isCurrentMode) {
           bannerPulls++; // 模拟器内部状态增加
+
+          // 公测新增：30抽送10连 (Ghost Pull)
+          if (bannerPulls === this.FREE_PULL_TRIGGER) {
+            // 执行10次免费的独立判定
+            for (let f = 0; f < this.FREE_PULL_AMOUNT; f++) {
+              // 恒定概率判定，不涉及 pity
+              if (Math.random() < this.FREE_PULL_PROB) {
+                // 出金了
+                // 不消耗 120 井，不重置 pity (根据"不参与一切保底交互"推断)
+                // 50% 概率是 UP
+                if (Math.random() < 0.5) {
+                  copies++;
+                }
+              }
+            }
+            // 如果 Ghost Pull 直接毕业，循环会在下一次 check 时终止
+          }
 
           // Milestone
           if (bannerPulls > 0 && bannerPulls % this.MILESTONE_STEP === 0) {
