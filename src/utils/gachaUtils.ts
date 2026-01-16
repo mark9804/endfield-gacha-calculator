@@ -169,15 +169,12 @@ export class EndfieldCalculator {
   public async calculateAsync(
     config: SimulationConfig
   ): Promise<SimulationResult> {
-    // 1. 如果是 DP，计算极快，直接在主线程同步执行，避免 Worker 通信开销
-    if (config.algorithm === AlgorithmType.DP) {
-      return this.calculate(config);
-    }
-
-    // 2. 如果是 MCMC，计算量大，放入 Worker 执行以防阻塞 UI
     return new Promise((resolve, reject) => {
       const worker = new Worker(
-        new URL("../workers/mcmc.worker.ts", import.meta.url),
+        new URL(
+          "../workers/endfield-gacha-calculator-worker.ts",
+          import.meta.url
+        ),
         { type: "module" }
       );
 
